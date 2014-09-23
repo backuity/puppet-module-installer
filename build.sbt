@@ -1,11 +1,11 @@
 
-name := "module-installer"
+name := "puppet-module-installer"
 
 organization := "org.backuity"
 
 scalaVersion := "2.11.2"
 
-homepage := Some(url("https://github.com/backuity/matchete"))
+homepage := Some(url("https://github.com/backuity/puppet-module-installer"))
 
 licenses := Seq("Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
@@ -44,8 +44,8 @@ pomIncludeRepository := { _ => false }
 
 pomExtra :=
   <scm>
-    <url>git@github.com:backuity/matchete.git</url>
-    <connection>scm:git:git@github.com:backuity/matchete.git</connection>
+    <url>git@github.com:backuity/puppet-module-installer.git</url>
+    <connection>scm:git:git@github.com:backuity/puppet-module-installer.git</connection>
   </scm>
     <developers>
       <developer>
