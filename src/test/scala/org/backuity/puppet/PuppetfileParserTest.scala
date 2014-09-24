@@ -1,4 +1,4 @@
-package org.backuity
+package org.backuity.puppet
 
 import org.backuity.matchete.JunitMatchers
 import org.junit.Test

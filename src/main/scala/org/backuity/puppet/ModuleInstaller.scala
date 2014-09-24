@@ -1,4 +1,4 @@
-package org.backuity
+package org.backuity.puppet
 
 import java.io.File
 import java.net.URL

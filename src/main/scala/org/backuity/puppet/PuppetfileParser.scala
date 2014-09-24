@@ -1,4 +1,4 @@
-package org.backuity
+package org.backuity.puppet
 
 import org.parboiled2.{ParseError, CharPredicate, Parser, ParserInput}
 
