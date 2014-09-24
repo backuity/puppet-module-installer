@@ -96,7 +96,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     for ((name, module) <- modules) {
       module match {
         case ForgeModule(version) =>
-          println(s"Forge module $name has been ignored - forge modules are not supported.")
+          debug(yellow(s"Forge module $name has been ignored - forge modules are not supported."))
           decrementFilesToProcess()
 
         case GitModule(uri, ref) =>
@@ -141,7 +141,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   }
 
   private def exec(cmd: String, dir: File) {
-    debug(grey(dir + " $ " + cmd))
+    debug(blue(dir + " $ " + cmd))
     val process = Runtime.getRuntime.exec(cmd, null, dir)
     process.waitFor() match {
       case 0 =>
@@ -156,7 +156,8 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   }
 
   val bold = "1"
-  val grey = "30"
+  val yellow = "33"
+  val blue = "34"
 
   private def colorize(msg: String, codes : String*) : String = {
     "\u001b[" + codes.mkString(";") + "m" + msg + "\u001b[m"
@@ -166,7 +167,6 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     colorize(msg, bold)
   }
 
-  private def grey(msg: String) : String = {
-    colorize(msg, grey)
-  }
+  private def blue(msg: String) : String = colorize(msg, blue)
+  private def yellow(msg: String) : String = colorize(msg, yellow)
 }
