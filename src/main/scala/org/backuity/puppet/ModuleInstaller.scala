@@ -51,15 +51,14 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   private val done = new Semaphore(0)
   private val filesToProcess = new AtomicInteger(0)
 
-  /** @return a Puppetfile from the new module */
-  private def installFromGit(name: String, gitUri: String) {
+  private def installFromGit(name: String, gitUri: String, ref: Option[String]) {
     if( ! isModulePresent(name) ) {
-      println(s"> ${bold(name)} in $modulesDir from $gitUri")
+      println(s"> ${bold(name)} in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
       val moduleDir = new File(modulesDir, name)
       if( !moduleDir.isDirectory && !moduleDir.mkdirs() ) {
         sys.error(s"Cannot create $name in $modulesDir")
       }
-      clone(gitUri, moduleDir)
+      clone(gitUri, ref, moduleDir)
       val puppetFile: File = new File(moduleDir, "Puppetfile")
       if (puppetFile.isFile) {
         install(puppetFile)
@@ -103,7 +102,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
           pool.execute(new Runnable {
             override def run(): Unit = {
               try {
-                installFromGit(name, uri)
+                installFromGit(name, uri, ref)
                 decrementFilesToProcess()
               } catch {
                 case t : Throwable =>
@@ -132,11 +131,17 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     }
   }
 
-  private def clone(gitUri: String, dir : File) {
+  private def clone(gitUri: String, ref: Option[String], dir : File) {
     if( new File(dir, ".git").isDirectory ) {
-      exec(s"git pull", dir)
+      ref match {
+        case None => exec(s"git pull", dir)
+        case Some(r) =>
+          exec(s"git fetch", dir)
+          exec(s"git checkout $r", dir)
+      }
     } else {
-      exec(s"git clone $gitUri .", dir)
+      val branch = ref.map( r => " --branch " + r).getOrElse("")
+      exec(s"git clone$branch $gitUri .", dir)
     }
   }
 
