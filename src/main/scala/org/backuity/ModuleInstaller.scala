@@ -148,7 +148,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   val grey = "30"
 
   private def colorize(msg: String, codes : String*) : String = {
-    "\033[" + codes.mkString(";") + "m" + msg + "\033[m"
+    "\u001b[" + codes.mkString(";") + "m" + msg + "\u001b[m"
   }
 
   private def bold(msg: String) : String = {
