@@ -81,30 +81,41 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     }
   }
 
+  private def decrementFilesToProcess(): Unit = {
+    if( filesToProcess.decrementAndGet() == 0 ) {
+      done.release() // unlock the main thread to terminate
+    }
+  }
+
   private def install(puppetFile : File) {
     println(s"Parsing $puppetFile ...")
     val puppetFileContent = FileUtils.readFileToString(puppetFile)
     val modules = PuppetfileParser.parse(puppetFileContent).modules
     println(s"Found ${modules.size} modules in $puppetFile")
     filesToProcess.getAndAdd(modules.size)
-    for ((name, Module(uri,ref)) <- modules) yield {
-      pool.execute(new Runnable {
-        override def run(): Unit = {
-          try {
-            installFromGit(name, uri)
-            if( filesToProcess.decrementAndGet() == 0 ) {
-              done.release() // unlock the main thread to terminate
+    for ((name, module) <- modules) {
+      module match {
+        case ForgeModule(version) =>
+          println(s"Forge module $name has been ignored - forge modules are not supported.")
+          decrementFilesToProcess()
+
+        case GitModule(uri, ref) =>
+          pool.execute(new Runnable {
+            override def run(): Unit = {
+              try {
+                installFromGit(name, uri)
+                decrementFilesToProcess()
+              } catch {
+                case t : Throwable =>
+                  Console.err.println(s"Cannot install $name from $uri")
+                  t.printStackTrace()
+                  // fatal failure... just terminate everything - we might want to add a mode that deletes
+                  // failing modules?
+                  System.exit(2)
+              }
             }
-          } catch {
-            case t : Throwable =>
-              Console.err.println(s"Cannot install $name from $uri")
-              t.printStackTrace()
-              // fatal failure... just terminate everything - we might want to add a mode that deletes
-              // failing modules?
-              System.exit(2)
-          }
-        }
-      })
+          })
+      }
     }
   }
 

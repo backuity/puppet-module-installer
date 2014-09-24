@@ -4,7 +4,10 @@ import org.parboiled2.{ParseError, CharPredicate, Parser, ParserInput}
 
 import scala.util.{Success, Failure}
 
-case class Module(gitUri: String, ref: Option[String] = None)
+sealed abstract class Module
+
+case class GitModule(gitUri: String, ref: Option[String] = None) extends Module
+case class ForgeModule(version: String) extends Module
 
 case class Puppetfile(forge: Option[String] = None,
                       modules : Map[String, Module] = Map.empty)
@@ -21,17 +24,27 @@ class PuppetfileParser(val input: ParserInput) extends Parser {
 
   def ModuleRule = rule {
     Blanks ~ ws("mod") ~ Quote ~ capture(ModuleIdentifier) ~ Quote ~ ws(',') ~
-      ws(":git") ~ ws("=>") ~ Quote ~ capture(GitUri) ~ Quote ~ 
-      optional( Blanks ~ ws(',') ~ ws(":ref") ~ ws("=>") ~ Quote ~ capture(GitTag) ~ Quote)  ~>
-      {(m: Map[String,Module], moduleId: String, gitUri: String, ref: Option[String]) =>
-         val module = Module(gitUri, ref)
+        (GitModuleRule | ForgeModuleRule) ~>
+      {(m: Map[String,Module], moduleId: String, module: Module) =>
          if( m.contains(moduleId) ) sys.error(s"Duplicated module $moduleId, cannot replace ${m(moduleId)} with $module" )
          m + (moduleId -> module) }
   }
 
-  def ModuleIdentifier = rule { oneOrMore(CharPredicate.AlphaNum ++ Seq('_')) } // '-' isn't supported as it leads to invalid module names
+  // we might want to have stricter module identifier for GitModule?
+  def ModuleIdentifier = rule { oneOrMore(CharPredicate.AlphaNum ++ Seq('_','/')) } // '-' isn't supported as it leads to invalid module names
+
+  def GitModuleRule = rule {
+    ws(":git") ~ ws("=>") ~ Quote ~ capture(GitUri) ~ Quote ~
+        optional( Blanks ~ ws(',') ~ ws(":ref") ~ ws("=>") ~ Quote ~ capture(GitTag) ~ Quote) ~>
+        {(gitUri: String, ref: Option[String]) => GitModule(gitUri, ref)}
+  }
   def GitUri = rule { oneOrMore(NonQuoteChar) }
   def GitTag = rule { oneOrMore(NonQuoteChar)}
+
+  def ForgeModuleRule = rule {
+    Quote ~ capture(ModuleVersion) ~ Quote ~> ForgeModule
+  }
+  def ModuleVersion = rule { oneOrMore(NonQuoteChar) }
 
   def ws(c: Char) = rule { c ~ Blanks }
   def ws(c: String) = rule { c ~ Blanks }

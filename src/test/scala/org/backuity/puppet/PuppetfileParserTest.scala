@@ -29,8 +29,23 @@ class PuppetfileParserTest extends JunitMatchers {
         |   mod    'tata',
         |   :git =>    "ssh://git.backuity.com/blabla.git"
       """.stripMargin) must_== Puppetfile(None, Map(
-      "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2")),
-      "tata" -> Module("ssh://git.backuity.com/blabla.git")
+      "toto" -> GitModule("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2")),
+      "tata" -> GitModule("ssh://git.backuity.com/blabla.git")
+    ))
+  }
+
+  @Test
+  def parseForgeModule() {
+    PuppetfileParser.parse(
+      """forge 'http://forge.puppetlabs.com'
+        |
+        |mod 'puppetlabs/stdlib', '>=0.1.6'
+        |mod 'puppetlabs/apt', '>=1.0.0'
+        |mod 'puppetlabs/concat', '>=1.0.0'
+        |""".stripMargin) must_== Puppetfile(Some("http://forge.puppetlabs.com"), Map(
+      "puppetlabs/stdlib" -> ForgeModule(">=0.1.6"),
+      "puppetlabs/apt" -> ForgeModule(">=1.0.0"),
+      "puppetlabs/concat" -> ForgeModule(">=1.0.0")
     ))
   }
 
@@ -43,7 +58,7 @@ class PuppetfileParserTest extends JunitMatchers {
         |   :git => 'ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git',
         |   :ref => '1.4.2'
       """.stripMargin) must_== Puppetfile(Some("http://forge.puppetlabs.com"), Map(
-      "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2"))
+      "toto" -> GitModule("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2"))
     ))
   }
 
@@ -58,8 +73,8 @@ class PuppetfileParserTest extends JunitMatchers {
        |   mod    'ta1_ta',
        |   :git =>    "ssh://git.backuity.com/blabla.git"
      """.stripMargin) must_== Puppetfile(None, Map(
-        "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git"),
-        "ta1_ta" -> Module("ssh://git.backuity.com/blabla.git")
+        "toto" -> GitModule("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git"),
+        "ta1_ta" -> GitModule("ssh://git.backuity.com/blabla.git")
     ))
   }
 }
