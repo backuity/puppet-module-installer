@@ -84,10 +84,10 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   private def install(puppetFile : File) {
     println(s"Parsing $puppetFile ...")
     val puppetFileContent = FileUtils.readFileToString(puppetFile)
-    val modules = PuppetfileParser.parse(puppetFileContent)
+    val modules = PuppetfileParser.parse(puppetFileContent).modules
     println(s"Found ${modules.size} modules in $puppetFile")
     filesToProcess.getAndAdd(modules.size)
-    for ((name, uri) <- modules) yield {
+    for ((name, Module(uri,ref)) <- modules) yield {
       pool.execute(new Runnable {
         override def run(): Unit = {
           try {

@@ -28,10 +28,23 @@ class PuppetfileParserTest extends JunitMatchers {
         |
         |   mod    'tata',
         |   :git =>    "ssh://git.backuity.com/blabla.git"
-      """.stripMargin) must_== Map(
-      "toto" -> "ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git",
-      "tata" -> "ssh://git.backuity.com/blabla.git"
-    )
+      """.stripMargin) must_== Puppetfile(None, Map(
+      "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2")),
+      "tata" -> Module("ssh://git.backuity.com/blabla.git")
+    ))
+  }
+
+  @Test
+  def parseForge(): Unit = {
+    PuppetfileParser.parse(
+      """forge 'http://forge.puppetlabs.com'
+        |
+        |mod "toto",
+        |   :git => 'ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git',
+        |   :ref => '1.4.2'
+      """.stripMargin) must_== Puppetfile(Some("http://forge.puppetlabs.com"), Map(
+      "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2"))
+    ))
   }
 
   @Test
@@ -44,9 +57,9 @@ class PuppetfileParserTest extends JunitMatchers {
        |
        |   mod    'ta1_ta',
        |   :git =>    "ssh://git.backuity.com/blabla.git"
-     """.stripMargin) must_== Map(
-        "toto" -> "ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git",
-        "ta1_ta" -> "ssh://git.backuity.com/blabla.git"
-    )
+     """.stripMargin) must_== Puppetfile(None, Map(
+        "toto" -> Module("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git"),
+        "ta1_ta" -> Module("ssh://git.backuity.com/blabla.git")
+    ))
   }
 }
