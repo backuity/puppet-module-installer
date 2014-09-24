@@ -1,23 +1,45 @@
 package org.backuity
 
 import java.io.File
+import java.net.URL
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.jar.Manifest
 
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 object ModuleInstaller {
 
   def main(args: Array[String]) {
-    val puppetFile: File = new File("Puppetfile")
-    if( ! puppetFile.isFile) {
-      println("No Puppetfile found")
-      System.exit(1)
+    args.headOption match {
+        case Some("--version") => showVersion()
+        case Some("-v") => run(verbose = true)
+        case _ => run(verbose = false)
     }
+  }
 
-    val verbose = args.length > 0 && args(0) == "-v"
-    val moduleDir = new File("modules")
-    new ModuleInstaller(moduleDir, verbose).installRoot(puppetFile)
+  private def toManifest(url: URL) : Manifest = {
+    new Manifest(url.openStream())
+  }
+
+  def showVersion(): Unit = {
+    import scala.collection.JavaConversions._
+    val manifests: List[URL] = this.getClass.getClassLoader.getResources("META-INF/MANIFEST.MF").toList
+    manifests.map(toManifest).find( _.getMainAttributes.getValue("Implementation-Title") == "puppet-module-installer") match {
+      case None => println("Unknown version")
+      case Some(manifest) => println(manifest.getMainAttributes.getValue("Implementation-Version"))
+    }
+  }
+
+  def run(verbose: Boolean): Unit = {
+      val puppetFile: File = new File("Puppetfile")
+      if( ! puppetFile.isFile) {
+          println("No Puppetfile found")
+          System.exit(1)
+      }
+
+      val moduleDir = new File("modules")
+      new ModuleInstaller(moduleDir, verbose).installRoot(puppetFile)
   }
 }
 
