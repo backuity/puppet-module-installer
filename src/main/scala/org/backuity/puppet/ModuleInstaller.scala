@@ -12,6 +12,9 @@ object ModuleInstaller {
 
   def main(args: Array[String]) {
     args.headOption match {
+      // TODO --validate by checking out only the Puppetfile
+      //      see http://stackoverflow.com/questions/2466735/checkout-only-one-file-from-git
+
         case Some("--version") => showVersion()
         case Some("-v") => run(verbose = true)
         case _ => run(verbose = false)
