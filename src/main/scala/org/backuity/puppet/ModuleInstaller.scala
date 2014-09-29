@@ -5,6 +5,7 @@ import java.net.URL
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.jar.Manifest
+import AnsiFormatter.FormattedHelper
 
 import org.apache.commons.io.{FileUtils, IOUtils}
 
@@ -56,7 +57,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
 
   private def installFromGit(name: String, gitUri: String, ref: Option[String], origin: String) {
     if( ! isModulePresent(name, ref, origin) ) {
-      println(s"> ${bold(name)} in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
+      println(ansi"> \bold{$name} in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
       val moduleDir = new File(modulesDir, name)
       if( !moduleDir.isDirectory && !moduleDir.mkdirs() ) {
         sys.error(s"Cannot create $name in $modulesDir")
@@ -98,7 +99,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     for ((name, module) <- modules) {
       module match {
         case ForgeModule(version) =>
-          debug(yellow(s"Forge module $name has been ignored - forge modules are not supported."))
+          debug(ansi"\yellow{Forge module $name has been ignored - forge modules are not supported.}")
           decrementFilesToProcess()
 
         case GitModule(uri, ref) =>
@@ -132,8 +133,8 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
 
         case Some(existing) =>
           if( ! Version(existing).isGreaterOrEquals(Version(ref)) ) {
-            warn("Module " + bold(name) + Console.RED + " has been installed with version " +
-              existing.getOrElse("LATEST") + " but it is required by " + origin + " with version " +
+            warn(ansi"Module \bold{$name} has been installed with version " +
+              existing.getOrElse("LATEST") + s" but it is required by $origin with version " +
               ref.getOrElse("LATEST"))
           }
           true
@@ -156,7 +157,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   }
 
   private def exec(cmd: String, dir: File) {
-    debug(blue(dir + " $ " + cmd))
+    debug(ansi"\blue{$dir \$ $cmd}")
     val process = Runtime.getRuntime.exec(cmd, null, dir)
     process.waitFor() match {
       case 0 =>
@@ -171,23 +172,6 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   }
 
   private def warn(msg: String) {
-    println(red(msg))
+    println(ansi"\red{$msg}")
   }
-
-  val bold = "1"
-  val red = "31"
-  val yellow = "33"
-  val blue = "34"
-
-  private def colorize(msg: String, codes : String*) : String = {
-    "\u001b[" + codes.mkString(";") + "m" + msg + "\u001b[m"
-  }
-
-  private def bold(msg: String) : String = {
-    colorize(msg, bold)
-  }
-
-  private def blue(msg: String) : String = colorize(msg, blue)
-  private def yellow(msg: String) : String = colorize(msg, yellow)
-  private def red(msg: String) : String = colorize(msg, red)
 }

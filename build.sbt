@@ -13,6 +13,7 @@ scalacOptions ++= Seq("-deprecation", "-unchecked")
 
 libraryDependencies ++= Seq(
   "org.parboiled" %% "parboiled" % "2.0.1",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
   "commons-io"    % "commons-io" % "2.4",
   "org.backuity" %% "matchete" % "1.10" % "test",
   "com.novocode" % "junit-interface" % "0.11" % "test"
