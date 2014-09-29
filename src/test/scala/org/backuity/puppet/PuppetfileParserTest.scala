@@ -20,6 +20,30 @@ class PuppetfileParserTest extends JunitMatchers {
   }
 
   @Test
+  def commentsShouldBeIgnored(): Unit = {
+    PuppetfileParser.parse(
+      """# a comment
+        |mod "toto", # tada
+        |   # a ... comment! -- everything on the line should be ignore :git => 'ssh://git.backuity.com/',
+        |   :git => 'ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git', # yipee
+        |   # another
+        |   # multiline
+        |   # comment
+        |   :ref => '1.4.2' # ooooh
+        |
+        |# yet another
+        |# multi
+        |# line comment
+        |mod 'tata',
+        |   :git => # bloublou
+        |     "ssh://git.backuity.com/blabla.git"
+        |""".stripMargin) must_== Puppetfile(None, Map(
+      "toto" -> GitModule("ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git", Some("1.4.2")),
+      "tata" -> GitModule("ssh://git.backuity.com/blabla.git")
+    ))
+  }
+
+  @Test
   def parseRef() {
     PuppetfileParser.parse(
       """mod "toto",
