@@ -45,14 +45,14 @@ object ModuleInstaller {
 
 private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
 
-  private var modules : Set[String] = Set.empty[String]
+  private val modules : collection.mutable.Map[String, Option[String]] = collection.mutable.Map.empty
 
   private val pool = Executors.newFixedThreadPool(6)
   private val done = new Semaphore(0)
   private val filesToProcess = new AtomicInteger(0)
 
-  private def installFromGit(name: String, gitUri: String, ref: Option[String]) {
-    if( ! isModulePresent(name) ) {
+  private def installFromGit(name: String, gitUri: String, ref: Option[String], origin: String) {
+    if( ! isModulePresent(name, ref, origin) ) {
       println(s"> ${bold(name)} in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
       val moduleDir = new File(modulesDir, name)
       if( !moduleDir.isDirectory && !moduleDir.mkdirs() ) {
@@ -102,7 +102,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
           pool.execute(new Runnable {
             override def run(): Unit = {
               try {
-                installFromGit(name, uri, ref)
+                installFromGit(name, uri, ref, origin = puppetFile.toString)
                 decrementFilesToProcess()
               } catch {
                 case t : Throwable =>
@@ -120,15 +120,27 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
 
   /** @return true if the module is currently being
     *         installed or has already been installed */
-  private def isModulePresent(name: String) : Boolean = {
+  private def isModulePresent(name: String, ref: Option[String], origin: String) : Boolean = {
     modules.synchronized {
-      if( !modules.contains(name) ) {
-        modules += name
-        false
-      } else {
-        true
+      modules.get(name) match {
+        case None =>
+          modules.put( name, ref )
+          false
+
+        case Some(existing) =>
+          if( ! Version(existing).isGreaterOrEqual(Version(ref)) ) {
+            warn("Module " + bold(name) + Console.RED + " has been installed with version " +
+              existing.getOrElse("LATEST") + " but it is required by " + origin + " with version " +
+              ref.getOrElse("LATEST"))
+          }
+          true
       }
     }
+  }
+
+  private def incompatibleVersion(existing: Option[String], newVersion: Option[String]) : Boolean = {
+    if( existing )
+    true
   }
 
   private def clone(gitUri: String, ref: Option[String], dir : File) {
@@ -160,7 +172,12 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
     if( verbose ) println(msg)
   }
 
+  private def warn(msg: String) {
+    println(red(msg))
+  }
+
   val bold = "1"
+  val red = "31"
   val yellow = "33"
   val blue = "34"
 
@@ -174,4 +191,5 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
 
   private def blue(msg: String) : String = colorize(msg, blue)
   private def yellow(msg: String) : String = colorize(msg, yellow)
+  private def red(msg: String) : String = colorize(msg, red)
 }
