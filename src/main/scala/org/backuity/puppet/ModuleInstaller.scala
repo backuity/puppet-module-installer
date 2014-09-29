@@ -109,7 +109,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
                 decrementFilesToProcess()
               } catch {
                 case t : Throwable =>
-                  Console.err.println(s"Cannot install $name from $uri")
+                  Console.err.println(s"Cannot install $name from $uri ref:${ref.getOrElse("Latest")}")
                   t.printStackTrace()
                   // fatal failure... just terminate everything - we might want to add a mode that deletes
                   // failing modules?
