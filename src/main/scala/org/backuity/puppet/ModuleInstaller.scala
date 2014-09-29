@@ -131,7 +131,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
           false
 
         case Some(existing) =>
-          if( ! Version(existing).isGreaterOrEqual(Version(ref)) ) {
+          if( ! Version(existing).isGreaterOrEquals(Version(ref)) ) {
             warn("Module " + bold(name) + Console.RED + " has been installed with version " +
               existing.getOrElse("LATEST") + " but it is required by " + origin + " with version " +
               ref.getOrElse("LATEST"))
@@ -139,11 +139,6 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
           true
       }
     }
-  }
-
-  private def incompatibleVersion(existing: Option[String], newVersion: Option[String]) : Boolean = {
-    if( existing )
-    true
   }
 
   private def clone(gitUri: String, ref: Option[String], dir : File) {
