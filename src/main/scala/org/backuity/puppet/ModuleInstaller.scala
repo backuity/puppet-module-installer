@@ -1,6 +1,7 @@
 package org.backuity.puppet
 
 import java.io.File
+import java.nio.file.Files
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -9,6 +10,48 @@ import org.backuity.puppet.AnsiFormatter.FormattedHelper
 import org.backuity.puppet.Puppetfile.{GitModule, ForgeModule}
 
 object ModuleInstaller {
+
+  case class Module(name: String, version: String, dependencies: Set[Module])
+
+  trait Git {
+    def lsRemoteTags(uri: String) : String
+  }
+
+  class GitImpl extends Git {
+    def lsRemoteTags(uri: String) : String = {
+      // exec("git ls-remote --tags " + uri)
+      ""
+    }
+  }
+
+  class ModuleFetcher(git : Git) {
+    def buildModuleGraph(puppetFile: File, forceLatestVersion: Boolean) : Set[Module] = {
+      println(s"Parsing $puppetFile ...")
+      val puppetFileContent = FileUtils.readFileToString(puppetFile)
+      val puppetFileModules = Puppetfile.parse(puppetFileContent).modules
+      for( (name,module) <- puppetFileModules ) {
+        module match {
+          case _ : ForgeModule => println("Unsupported")
+          case GitModule(uri, ref) =>
+            ref match {
+              case None => getLatestTag(name, uri)
+              case Some(r) => if( forceLatestVersion ) getLatestTag(name, uri) else r
+            }
+        }
+      }
+      null
+    }
+
+    /** @return stdout */
+    private def exec(cmd: String, dir: File = new File(".")): String = {
+      ""
+    }
+
+    def getLatestTag(name: String, uri: String) : Option[Version] = {
+      val gitOutput = git.lsRemoteTags(uri)
+      GitUtil.latestVersion(gitOutput)(new AnsiConsoleLogger)
+    }
+  }
 
   def main(args: Array[String]) {
     args.headOption match {
