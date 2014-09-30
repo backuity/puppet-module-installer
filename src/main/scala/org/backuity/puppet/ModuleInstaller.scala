@@ -1,13 +1,11 @@
 package org.backuity.puppet
 
 import java.io.File
-import java.net.URL
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.jar.Manifest
-import AnsiFormatter.FormattedHelper
 
 import org.apache.commons.io.{FileUtils, IOUtils}
+import org.backuity.puppet.AnsiFormatter.FormattedHelper
 
 object ModuleInstaller {
 
@@ -22,17 +20,8 @@ object ModuleInstaller {
     }
   }
 
-  private def toManifest(url: URL) : Manifest = {
-    new Manifest(url.openStream())
-  }
-
   def showVersion(): Unit = {
-    import scala.collection.JavaConversions._
-    val manifests: List[URL] = this.getClass.getClassLoader.getResources("META-INF/MANIFEST.MF").toList
-    manifests.map(toManifest).find( _.getMainAttributes.getValue("Implementation-Title") == "puppet-module-installer") match {
-      case None => println("Unknown version")
-      case Some(manifest) => println(manifest.getMainAttributes.getValue("Implementation-Version"))
-    }
+    println( VersionUtil.versionFor("puppet-module-installer").getOrElse("Unknown version") )
   }
 
   def run(verbose: Boolean): Unit = {
