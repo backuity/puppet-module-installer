@@ -1,11 +1,22 @@
 package org.backuity.puppet
 
-sealed trait Version {
+sealed trait Version extends Ordered[Version] {
   def isGreaterOrEquals(other: Version) : Boolean = {
     Version.isGreaterOrEquals(this, other)
   }
   def isCompatibleWith(other: Version) : Boolean = {
     Version.isCompatibleWith(this, other)
+  }
+  def compare(other: Version) : Int = {
+    if( isGreaterOrEquals(other) ) {
+      if( other.isGreaterOrEquals(this)) {
+        0
+      } else {
+        1
+      }
+    } else {
+      -1
+    }
   }
 }
 
@@ -22,9 +33,15 @@ object Version {
       case (Latest, _ : MajorMinorBugFix) => true
       case (_ : MajorMinorBugFix, Latest) => false
       case (a : MajorMinorBugFix, b : MajorMinorBugFix) =>
-        a.major >= b.major &&
-        a.minor >= b.minor &&
-        a.bugfix >= b.bugfix
+        if( a.major != b.major ) {
+          a.major > b.major
+        } else {
+          if( a.minor != b.minor ) {
+            a.minor > b.minor
+          } else {
+            a.bugfix >= b.bugfix
+          }
+        }
     }
   }
 
