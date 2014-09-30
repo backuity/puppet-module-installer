@@ -157,7 +157,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   }
 
   private def exec(cmd: String, dir: File) {
-    debug(ansi"\blue{$dir \$ $cmd}")
+    debug(ansi"\blue{$dir $$ $cmd}")
     val process = Runtime.getRuntime.exec(cmd, null, dir)
     process.waitFor() match {
       case 0 =>
