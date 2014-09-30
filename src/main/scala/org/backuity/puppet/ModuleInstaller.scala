@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.backuity.puppet.AnsiFormatter.FormattedHelper
+import org.backuity.puppet.Puppetfile.{GitModule, ForgeModule}
 
 object ModuleInstaller {
 
@@ -82,7 +83,7 @@ private class ModuleInstaller(modulesDir: File, verbose: Boolean = false) {
   private def install(puppetFile : File) {
     println(s"Parsing $puppetFile ...")
     val puppetFileContent = FileUtils.readFileToString(puppetFile)
-    val modules = PuppetfileParser.parse(puppetFileContent).modules
+    val modules = Puppetfile.parse(puppetFileContent).modules
     println(s"Found ${modules.size} modules in $puppetFile")
     filesToProcess.getAndAdd(modules.size)
     for ((name, module) <- modules) {

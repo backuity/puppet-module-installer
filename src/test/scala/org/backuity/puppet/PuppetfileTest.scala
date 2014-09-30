@@ -1,13 +1,14 @@
 package org.backuity.puppet
 
 import org.backuity.matchete.JunitMatchers
+import org.backuity.puppet.Puppetfile.{ForgeModule, GitModule}
 import org.junit.Test
 
-class PuppetfileParserTest extends JunitMatchers {
+class PuppetfileTest extends JunitMatchers {
 
   @Test
   def duplicatedModuleDefinitionsIsntAllowed() {
-    PuppetfileParser.parse("""
+    Puppetfile.parse("""
       |mod 'toto',
       |   :git => 'ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git'
       |
@@ -21,7 +22,7 @@ class PuppetfileParserTest extends JunitMatchers {
 
   @Test
   def commentsShouldBeIgnored(): Unit = {
-    PuppetfileParser.parse(
+    Puppetfile.parse(
       """# a comment
         |mod "toto", # tada
         |   # a ... comment! -- everything on the line should be ignore :git => 'ssh://git.backuity.com/',
@@ -45,7 +46,7 @@ class PuppetfileParserTest extends JunitMatchers {
 
   @Test
   def parseRef() {
-    PuppetfileParser.parse(
+    Puppetfile.parse(
       """mod "toto",
         |   :git => 'ssh://git.backuity.com/home/backuity/git-repos/puppet/puppet-backuity.git',
         |   :ref => '1.4.2'
@@ -60,7 +61,7 @@ class PuppetfileParserTest extends JunitMatchers {
 
   @Test
   def parseForgeModule() {
-    PuppetfileParser.parse(
+    Puppetfile.parse(
       """forge 'http://forge.puppetlabs.com'
         |
         |mod 'puppetlabs/stdlib', '>=0.1.6'
@@ -75,7 +76,7 @@ class PuppetfileParserTest extends JunitMatchers {
 
   @Test
   def parseForge(): Unit = {
-    PuppetfileParser.parse(
+    Puppetfile.parse(
       """forge 'http://forge.puppetlabs.com'
         |
         |mod "toto",
@@ -88,7 +89,7 @@ class PuppetfileParserTest extends JunitMatchers {
 
   @Test
   def parseShouldBeBlanksInsensitive() {
-    PuppetfileParser.parse(
+    Puppetfile.parse(
      """
        |mod "toto",
        |   :git =>
