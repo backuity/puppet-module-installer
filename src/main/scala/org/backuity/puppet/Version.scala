@@ -59,9 +59,21 @@ object Version {
     case Some(r) => Version(r)
   }
 
-  def apply(r: String) : Version = {
+  // take everything after the first digit
+  val VersionRegex = """[^0-9]*([0-9].*)""".r
+
+  /**
+   * Accept 1, 2 or 3 '.' separated digits versions, which can be prefixed by any number of chars.
+   *
+   * Example :
+   *
+   *   - `puppet-module-installer_1.2.0`
+   *   - `v1.2`
+   *   - `6`
+   */
+  def apply(versionString: String) : Version = {
     def fail(msg: String) : Nothing = {
-      throw new IllegalArgumentException(s"Cannot parse $r : $msg")
+      throw new IllegalArgumentException(s"Cannot parse $versionString : $msg")
     }
 
     def toInt(value: String, name: String): Int = {
@@ -76,18 +88,22 @@ object Version {
     def toMajor(value: String) = toInt(value, "major")
     def toMinor(value: String) = toInt(value, "minor")
 
-    val nbDot = r.count( _ == '.')
-    nbDot match {
-      case 0 => MajorMinorBugFix(toMajor(r), 0, 0)
-      case 1 =>
-        val Array(major,minor) = r.split("\\.")
-        MajorMinorBugFix(toMajor(major), toMinor(minor), 0)
+    VersionRegex.findFirstMatchIn(versionString).map( _.group(1)) match {
+      case None => fail("cannot find a digit")
+      case Some(digits) =>
+        val nbDot = digits.count( _ == '.')
+        nbDot match {
+          case 0 => MajorMinorBugFix(toMajor(digits), 0, 0)
+          case 1 =>
+            val Array(major,minor) = digits.split("\\.")
+            MajorMinorBugFix(toMajor(major), toMinor(minor), 0)
 
-      case 2 =>
-        val Array(major,minor,bugfix) = r.split("\\.")
-        MajorMinorBugFix(toMajor(major), toMinor(minor), toInt(bugfix, "bugfix"))
+          case 2 =>
+            val Array(major,minor,bugfix) = digits.split("\\.")
+            MajorMinorBugFix(toMajor(major), toMinor(minor), toInt(bugfix, "bugfix"))
 
-      case _ => fail("too many elements, expected 1, 2 or 3")
+          case _ => fail("too many elements, expected 1, 2 or 3 '.' separated digits")
+        }
     }
   }
 }
