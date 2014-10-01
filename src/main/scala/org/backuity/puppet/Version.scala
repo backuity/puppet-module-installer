@@ -1,55 +1,54 @@
 package org.backuity.puppet
 
+import org.backuity.puppet.Version.{MajorMinorBugFix, Latest}
+
 sealed trait Version extends Ordered[Version] {
-  def isGreaterOrEquals(other: Version) : Boolean = {
-    Version.isGreaterOrEquals(this, other)
-  }
   def isCompatibleWith(other: Version) : Boolean = {
     Version.isCompatibleWith(this, other)
   }
-  def compare(other: Version) : Int = {
-    if( isGreaterOrEquals(other) ) {
-      if( other.isGreaterOrEquals(this)) {
-        0
-      } else {
-        1
-      }
-    } else {
-      -1
-    }
-  }
+
+  override def compare(that: Version): Int = Version.versionOrdering.compare(this, that)
 }
 
 object Version {
 
-  object Latest extends Version
+  object Latest extends Version {
+    override def toString = "LATEST"
+  }
 
-  case class MajorMinorBugFix(major: Int, minor: Int, bugfix: Int) extends Version
-
-  /** @return true if `a` is greater or equals `b` */
-  def isGreaterOrEquals(a: Version, b: Version) : Boolean = {
-    (a,b) match {
-      case (Latest, Latest)               => true
-      case (Latest, _ : MajorMinorBugFix) => true
-      case (_ : MajorMinorBugFix, Latest) => false
-      case (a : MajorMinorBugFix, b : MajorMinorBugFix) =>
-        if( a.major != b.major ) {
-          a.major > b.major
-        } else {
-          if( a.minor != b.minor ) {
-            a.minor > b.minor
-          } else {
-            a.bugfix >= b.bugfix
-          }
-        }
+  implicit val versionOrdering = new Ordering[Version] {
+    def compare(a: Version, b: Version): Int = {
+      (a,b) match {
+        case (Latest, Latest)               => 0
+        case (Latest, _ : MajorMinorBugFix) => 1
+        case (_ : MajorMinorBugFix, Latest) => -1
+        case (a : MajorMinorBugFix, b : MajorMinorBugFix) =>
+          majorMinorBugFixOrdering.compare(a, b)
+      }
     }
+  }
+
+  implicit val majorMinorBugFixOrdering : Ordering[MajorMinorBugFix] = new Ordering[MajorMinorBugFix] {
+    def compare(a: MajorMinorBugFix, b: MajorMinorBugFix): Int = {
+      if( a.major != b.major ) {
+        a.major.compareTo(b.major)
+      } else {
+        if( a.minor != b.minor ) {
+          a.minor.compareTo(b.minor)
+        } else {
+          a.bugfix.compareTo(b.bugfix)
+        }
+      }
+    }
+  }
+
+  case class MajorMinorBugFix(major: Int, minor: Int, bugfix: Int) extends Version {
+    override def toString = s"$major.$minor.$bugfix"
   }
 
   def isCompatibleWith(a: Version, b: Version) : Boolean = {
     (a,b) match {
-      case (Latest,Latest) => true
-      case (Latest, _ : MajorMinorBugFix) => false
-      case (_ : MajorMinorBugFix, Latest) => false
+      case (Latest, _) | (_, Latest) => true
       case (a : MajorMinorBugFix, b : MajorMinorBugFix) => a.major == b.major
     }
   }
@@ -71,7 +70,7 @@ object Version {
    *   - `v1.2`
    *   - `6`
    */
-  def apply(versionString: String) : Version = {
+  def apply(versionString: String) : MajorMinorBugFix = {
     def fail(msg: String) : Nothing = {
       throw new IllegalArgumentException(s"Cannot parse $versionString : $msg")
     }
