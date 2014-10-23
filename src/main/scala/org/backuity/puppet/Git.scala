@@ -55,7 +55,8 @@ object Git {
         shell.exec(s"git archive --format tar --remote=$uri -o $fileName.tar ${tag.getOrElse("HEAD")} $fileName", downloadDir)
       } catch {
         case e @ CommandException(_,_,_,msg) =>
-          if( msg.contains("path not found") ) {
+          // the error message varies depending on the git install
+          if( msg.contains("path not found") || msg.contains("did not match any files") ) {
             throw new FileNotFoundException(s"$fileName in $uri")
           } else {
             throw e
