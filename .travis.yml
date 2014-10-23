@@ -1,3 +1,7 @@
 language: scala
 
+before_script: 
+  - git config --global user.email "john@doe.com"
+  - git config --global user.name "John Doe"
+
 script: sbt -sbt-version 0.13.5 test
