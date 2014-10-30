@@ -47,6 +47,74 @@ class ModuleFetcherTest extends ModuleTestSupport with LoggerTestSupport with Fi
     )
 
     when(git.latestTag("ssh://some.git/nexus")).thenReturn(Some("nexus-9.0.0"))
+    when(git.latestTag("ssh://some.git/jenkins", forMajor = 1)).thenReturn(Some("v1.2"))
+    when(git.latestTag("ssh://some.git/java", forMajor = 2)).thenReturn(Some("v2.7"))
+    when(git.latestTag("ssh://some.git/java", forMajor = 1)).thenReturn(Some("v1.8"))
+    when(git.latestTag("ssh://some.git/base")).thenReturn(Some("v2.0"))
+
+    when(git.downloadFile("Puppetfile", "ssh://some.git/nexus", Some("nexus-9.0.0"))).thenReturn(gitFolder.resolve("nexus-9.0.0"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/jenkins", Some("v1.2"))).thenReturn(gitFolder.resolve("jenkins-1.2"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v2.7"))).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v1.8"))).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/base", Some("v2.0"))).thenReturn(gitFolder.resolve("base"))
+
+    val puppetFileRepo = new PuppetFileRepositoryMock
+    val fetcher = new ModuleFetcher(git, puppetFileRepo)
+
+    def javaModule(version: String) = Module("java", Some(version), "ssh://some.git/java", Set(
+      Module("base", Some("v2.0"), "ssh://some.git/base")
+    ))
+
+    fetcher.buildModuleGraph(gitFolder.resolve("server"), FetchMode.LATEST) must_== Set(
+      Module("nexus", Some("nexus-9.0.0"), "ssh://some.git/nexus", Set(javaModule("v1.8"))),
+      Module("jenkins", Some("v1.2"), "ssh://some.git/jenkins", Set(javaModule("v2.7")))
+    )
+
+    puppetFileRepo.find("java", Version("2.7")) must beA[Found]
+    puppetFileRepo.find("base", Version("2.0")) must beA[Found]
+    puppetFileRepo.find("jenkins", Version("1.2")) must beA[Found]
+    puppetFileRepo.find("nexus", Version("9.0.0")) must beA[Found]
+
+    verify(git, times(2)).latestTag(anyString())(anyObject())
+    verify(git, times(3)).latestTag(anyString(),anyObject[Int]())(anyObject())
+  }
+
+  @Test
+  def fetchModulesRecursively_latestForceMode(): Unit = {
+    val git = mock(classOf[Git])
+
+    val gitFolder = Files.createTempDirectory("pmi")
+    gitFolder.addFiles(
+      "server" ->
+          """mod "nexus",
+            |   :git => 'ssh://some.git/nexus'
+            |
+            |mod "jenkins",
+            |   :git => 'ssh://some.git/jenkins',
+            |   :ref => 'v1.0'
+          """.stripMargin,
+
+      "nexus-9.0.0" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v1.2'
+          """.stripMargin,
+
+      "jenkins-1.2" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v2.5'
+          """.stripMargin,
+
+      "java-2.7" ->
+          """mod "base",
+            |   :git => 'ssh://some.git/base'
+          """.stripMargin,
+
+      "base" -> ""
+    )
+
+    when(git.latestTag("ssh://some.git/nexus")).thenReturn(Some("nexus-9.0.0"))
     when(git.latestTag("ssh://some.git/jenkins")).thenReturn(Some("v1.2"))
     when(git.latestTag("ssh://some.git/java")).thenReturn(Some("v2.7"))
     when(git.latestTag("ssh://some.git/base")).thenReturn(Some("v2.0"))
@@ -54,6 +122,7 @@ class ModuleFetcherTest extends ModuleTestSupport with LoggerTestSupport with Fi
     when(git.downloadFile("Puppetfile", "ssh://some.git/nexus", Some("nexus-9.0.0"))).thenReturn(gitFolder.resolve("nexus-9.0.0"))
     when(git.downloadFile("Puppetfile", "ssh://some.git/jenkins", Some("v1.2"))).thenReturn(gitFolder.resolve("jenkins-1.2"))
     when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v2.7"))).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v1.8"))).thenReturn(gitFolder.resolve("java-2.7"))
     when(git.downloadFile("Puppetfile", "ssh://some.git/base", Some("v2.0"))).thenReturn(gitFolder.resolve("base"))
 
     val puppetFileRepo = new PuppetFileRepositoryMock
@@ -63,7 +132,7 @@ class ModuleFetcherTest extends ModuleTestSupport with LoggerTestSupport with Fi
       Module("base", Some("v2.0"), "ssh://some.git/base")
     ))
 
-    fetcher.buildModuleGraph(gitFolder.resolve("server"), FetchMode.LATEST) must_== Set(
+    fetcher.buildModuleGraph(gitFolder.resolve("server"), FetchMode.LATEST_FORCE) must_== Set(
       Module("nexus", Some("nexus-9.0.0"), "ssh://some.git/nexus", Set(javaModule)),
       Module("jenkins", Some("v1.2"), "ssh://some.git/jenkins", Set(javaModule))
     )
@@ -74,6 +143,127 @@ class ModuleFetcherTest extends ModuleTestSupport with LoggerTestSupport with Fi
     puppetFileRepo.find("nexus", Version("9.0.0")) must beA[Found]
 
     verify(git, times(4)).latestTag(anyString())(anyObject())
+    verify(git, times(0)).latestTag(anyString(),anyObject[Int]())(anyObject())
+  }
+
+  @Test
+  def fetchModulesRecursively_latestHeadMode(): Unit = {
+    val git = mock(classOf[Git])
+
+    val gitFolder = Files.createTempDirectory("pmi")
+    gitFolder.addFiles(
+      "server" ->
+          """mod "nexus",
+            |   :git => 'ssh://some.git/nexus'
+            |
+            |mod "jenkins",
+            |   :git => 'ssh://some.git/jenkins',
+            |   :ref => 'v1.0'
+          """.stripMargin,
+
+      "nexus-9.0.0" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v1.2'
+          """.stripMargin,
+
+      "jenkins-1.2" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v2.5'
+          """.stripMargin,
+
+      "java-2.7" ->
+          """mod "base",
+            |   :git => 'ssh://some.git/base'
+          """.stripMargin,
+
+      "base" -> ""
+    )
+
+    when(git.latestTag("ssh://some.git/jenkins", forMajor = 1)).thenReturn(Some("v1.2"))
+    when(git.latestTag("ssh://some.git/java", forMajor = 2)).thenReturn(Some("v2.7"))
+    when(git.latestTag("ssh://some.git/java", forMajor = 1)).thenReturn(Some("v1.8"))
+
+    when(git.downloadFile("Puppetfile", "ssh://some.git/nexus", None)).thenReturn(gitFolder.resolve("nexus-9.0.0"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/jenkins", Some("v1.2"))).thenReturn(gitFolder.resolve("jenkins-1.2"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v2.7"))).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", Some("v1.8"))).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/base", None)).thenReturn(gitFolder.resolve("base"))
+
+    val puppetFileRepo = new PuppetFileRepositoryMock
+    val fetcher = new ModuleFetcher(git, puppetFileRepo)
+
+    def javaModule(version: String) = Module("java", Some(version), "ssh://some.git/java", Set(
+      Module("base", None, "ssh://some.git/base")
+    ))
+
+    fetcher.buildModuleGraph(gitFolder.resolve("server"), FetchMode.LATEST_HEAD) must_== Set(
+      Module("nexus", None, "ssh://some.git/nexus", Set(javaModule("v1.8"))),
+      Module("jenkins", Some("v1.2"), "ssh://some.git/jenkins", Set(javaModule("v2.7")))
+    )
+
+    puppetFileRepo.find("java", Version("2.7")) must beA[Found]
+    puppetFileRepo.find("jenkins", Version("1.2")) must beA[Found]
+
+    verify(git, times(0)).latestTag(anyString())(anyObject())
+    verify(git, times(3)).latestTag(anyString(),anyObject[Int]())(anyObject())
+  }
+
+  @Test
+  def fetchModulesRecursively_headMode(): Unit = {
+    val git = mock(classOf[Git])
+
+    val gitFolder = Files.createTempDirectory("pmi")
+    gitFolder.addFiles(
+      "server" ->
+          """mod "nexus",
+            |   :git => 'ssh://some.git/nexus'
+            |
+            |mod "jenkins",
+            |   :git => 'ssh://some.git/jenkins',
+            |   :ref => 'v1.0'
+          """.stripMargin,
+
+      "nexus-9.0.0" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v1.2'
+          """.stripMargin,
+
+      "jenkins-1.2" ->
+          """mod "java",
+            |   :git => 'ssh://some.git/java',
+            |   :ref => 'v2.5'
+          """.stripMargin,
+
+      "java-2.7" ->
+          """mod "base",
+            |   :git => 'ssh://some.git/base'
+          """.stripMargin,
+
+      "base" -> ""
+    )
+
+    when(git.downloadFile("Puppetfile", "ssh://some.git/nexus", None)).thenReturn(gitFolder.resolve("nexus-9.0.0"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/jenkins", None)).thenReturn(gitFolder.resolve("jenkins-1.2"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/java", None)).thenReturn(gitFolder.resolve("java-2.7"))
+    when(git.downloadFile("Puppetfile", "ssh://some.git/base", None)).thenReturn(gitFolder.resolve("base"))
+
+    val puppetFileRepo = new PuppetFileRepositoryMock
+    val fetcher = new ModuleFetcher(git, puppetFileRepo)
+
+    val javaModule = Module("java", None, "ssh://some.git/java", Set(
+      Module("base", None, "ssh://some.git/base")
+    ))
+
+    fetcher.buildModuleGraph(gitFolder.resolve("server"), FetchMode.HEAD) must_== Set(
+      Module("nexus", None, "ssh://some.git/nexus", Set(javaModule)),
+      Module("jenkins", None, "ssh://some.git/jenkins", Set(javaModule))
+    )
+
+    verify(git, times(0)).latestTag(anyString())(anyObject())
+    verify(git, times(0)).latestTag(anyString(),anyObject[Int]())(anyObject())
   }
 
   @Test

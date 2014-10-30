@@ -9,23 +9,19 @@ import org.backuity.puppet.PuppetFileRepository.{NotFound, Found, Missing}
 import org.backuity.puppet.Puppetfile.{ForgeModule, GitModule}
 import org.backuity.puppet.Version.{MajorMinorBugFix, Latest}
 
+import scala.collection.concurrent.TrieMap
+
 class ModuleFetcher(git : Git, puppetFileRepo : PuppetFileRepository)(implicit log: Logger) {
 
   def buildModuleGraph(puppetFile: Path, mode : FetchMode.FetchMode) : Set[Module] = {
 
     val moduleCache = new util.HashMap[(String, Version), Module]
-    val latestVersionCache = new util.HashMap[String, Option[String]]
 
-    def latestTag(uri: String): Option[String] = {
-      latestVersionCache.get(uri) match {
-        case null =>
-          val tag = git.latestTag(uri)
-          latestVersionCache.put(uri, tag)
-          tag
+    val latestVersionForMajorCache = TrieMap.empty[(String,Int), Option[String]]
 
-        case tag =>
-          tag
-      }
+    def latestTag(uri: String, forMajor: Int = -1) : Option[String] = {
+      latestVersionForMajorCache.getOrElseUpdate((uri, forMajor),
+        if( forMajor > -1 ) git.latestTag(uri, forMajor) else git.latestTag(uri))
     }
 
     def buildModuleGraph(puppetFile: Path, mode : FetchMode.FetchMode, parents: Seq[String]) : Set[Module] = {
@@ -44,11 +40,24 @@ class ModuleFetcher(git : Git, puppetFileRepo : PuppetFileRepository)(implicit l
 
           case GitModule(uri, ref) =>
 
-            val tag = if( mode == FetchMode.HEAD ) {
-              None
-            } else {
-              if (mode == FetchMode.LATEST) latestTag(uri) else ref
+            val tag = mode match {
+              case FetchMode.HEAD => None
+              case FetchMode.NORMAL => ref
+              case FetchMode.LATEST_FORCE => latestTag(uri)
+
+              case FetchMode.LATEST_HEAD =>
+                ref match {
+                  case None => None
+                  case Some(r) => latestTag(uri, forMajor = Version(r).major)
+                }
+
+              case FetchMode.LATEST =>
+                ref match {
+                  case None => latestTag(uri)
+                  case Some(r) => latestTag(uri, forMajor = Version(r).major)
+                }
             }
+
             val version = Version(tag)
 
             def downloadPuppetfile = git.downloadFile("Puppetfile", uri, tag)
@@ -110,8 +119,14 @@ object ModuleFetcher {
     /** Follow stricly the ref information found in the puppetfile */
     val NORMAL = Value
 
-    /** Find the latest tag */
+    /** Find the latest tag (for a major) */
     val LATEST = Value
+
+    /** Find the latest tag, disregarding possible major information */
+    val LATEST_FORCE = Value
+
+    /** Find the latest tag (for a major) or use HEAD if no tag is specified */
+    val LATEST_HEAD = Value
 
     /** Use HEAD for all modules */
     val HEAD = Value

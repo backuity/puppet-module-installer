@@ -12,7 +12,7 @@ trait ModuleTestSupport extends JunitMatchers {
 
   implicit val moduleComparator = new MatcherComparator[Module.Graph] {
     override def checkEqual(actual: Graph, expected: Graph): Unit = {
-      if( actual != expected ) throw new ComparisonFailure("Graph are different", Module.showGraph(expected), Module.showGraph(actual))
+      if( actual != expected ) throw new ComparisonFailure("Graphs are different", Module.showGraph(expected), Module.showGraph(actual))
     }
   }
 }

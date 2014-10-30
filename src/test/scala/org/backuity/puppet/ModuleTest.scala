@@ -22,21 +22,21 @@ class ModuleTest extends JunitMatchers {
       ansi"""Puppetfile
         |  ├ jenkins(\bold{1.2.0})\blue{ @ ssh://another.git/jenkins}
         |  │ └ java(\bold{2.7.0})\blue{ @ ssh://the.git/java.git}
-        |  │   └ base(\bold{LATEST})\blue{ @ ssh://base}
+        |  │   └ base(\bold{HEAD})\blue{ @ ssh://base}
         |  │
         |  └ nexus(\bold{1.2.0})\blue{ @ ssh://the.git/nexus}
         |    ├ java(\bold{2.7.0})\blue{ @ ssh://the.git/java.git}
-        |    └ my-sql(\bold{LATEST})\blue{ @ ssh://mysql}""".stripMargin
+        |    └ my-sql(\bold{HEAD})\blue{ @ ssh://mysql}""".stripMargin
 
     Module.showGraph(graph, withUri = false) must_==
         ansi"""Puppetfile
           |  ├ jenkins(\bold{1.2.0})
           |  │ └ java(\bold{2.7.0})
-          |  │   └ base(\bold{LATEST})
+          |  │   └ base(\bold{HEAD})
           |  │
           |  └ nexus(\bold{1.2.0})
           |    ├ java(\bold{2.7.0})
-          |    └ my-sql(\bold{LATEST})""".stripMargin
+          |    └ my-sql(\bold{HEAD})""".stripMargin
 
   }
 }

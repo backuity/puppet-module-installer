@@ -13,7 +13,7 @@ sealed trait Version extends Ordered[Version] {
 object Version {
 
   object Latest extends Version {
-    override def toString = "LATEST"
+    override def toString = "HEAD"
   }
 
   implicit val versionOrdering = new Ordering[Version] {
@@ -69,6 +69,7 @@ object Version {
    *   - `puppet-module-installer_1.2.0`
    *   - `v1.2`
    *   - `6`
+   * @throws IllegalArgumentException if versionString cannot be parsed into a Version
    */
   def apply(versionString: String) : MajorMinorBugFix = {
     def fail(msg: String) : Nothing = {
