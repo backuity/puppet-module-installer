@@ -1,12 +1,11 @@
 package org.backuity.puppet
 
 import java.io.FileNotFoundException
-import java.nio.file.{Path, Files, Paths}
+import java.nio.file.{Files, Path}
 
-import org.backuity.matchete.JunitMatchers
 import org.junit.Test
 
-class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
+class GitTest extends GitTestSupport {
 
   @Test
   def latestVersion_vPrefix(): Unit = {
@@ -50,7 +49,6 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     Git.latestVersion("") must_== None
   }
 
-
   @Test
   def latestVersionForMajor() {
     val gitOutput = """3616c5b452d63bf45ee3485f6c4632175960a5e6	refs/tags/v2.2
@@ -70,9 +68,6 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     Git.latestVersion(gitOutput, forMajor = 10) must_== Some("v10.10")
   }
 
-  val shell = new ShellImpl()
-  val git = new Git.Impl(shell)
-
   private def addToGit(fileName: String, sourceDir: Path): Unit = {
     sourceDir.addFiles(fileName -> (fileName + " content"))
     shell.exec("git add -A", sourceDir)
@@ -90,11 +85,11 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     Files.createDirectory(destDir)
 
     shell.exec("git init", sourceDir)
-    addToGit("toto_1", sourceDir)
+    sourceDir.addFileToGit("toto_1")
     shell.exec("git checkout -b abranch", sourceDir)
-    addToGit("toto_2", sourceDir)
+    sourceDir.addFileToGit("toto_2")
     shell.exec("git checkout master", sourceDir)
-    addToGit("toto_3", sourceDir)
+    sourceDir.addFileToGit("toto_3")
 
     shell.exec("git clone --branch abranch ../source .", destDir)
     destDir / "toto_3" must not(exist)
@@ -107,12 +102,11 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
   def currentBranch(): Unit = {
     val dir = Files.createTempDirectory("git")
 
-    shell.exec("git init", dir)
-    addToGit("toto_1", dir)
+    dir.initGit().addFileToGit("toto_1")
     git.currentBranch(dir) must_== "master"
 
     shell.exec("git checkout -b a_branch", dir)
-    addToGit("toto_2", dir)
+    dir.addFileToGit("toto_2")
     git.currentBranch(dir) must_== "a_branch"
   }
 
@@ -127,14 +121,14 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     Files.createDirectory(destDir)
 
     shell.exec("git init", sourceDir)
-    addToGit("toto_1", sourceDir)
+    sourceDir.addFileToGit("toto_1")
     shell.exec("git checkout -b a_branch", sourceDir)
-    addToGit("toto_2", sourceDir)
+    sourceDir.addFileToGit("toto_2")
 
     shell.exec("git clone --branch a_branch ../source .", destDir)
 
     shell.exec("git checkout -b b_branch", sourceDir)
-    addToGit("toto_3", sourceDir)
+    sourceDir.addFileToGit("toto_3")
 
     git.update("../source", Some("b_branch"), destDir)
     destDir / "toto_3" must contain("toto_3 content")
@@ -145,7 +139,7 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     val dir = Files.createTempDirectory("git")
 
     shell.exec("git init", dir)
-    addToGit("toto_1", dir)
+    dir.addFileToGit("toto_1")
 
     git.downloadFile("toto_1", "file://" + dir, None) must contain("toto_1 content")
   }
@@ -155,9 +149,9 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     val dir = Files.createTempDirectory("git")
 
     shell.exec("git init", dir)
-    addToGit("toto_1", dir)
+    dir.addFileToGit("toto_1")
     shell.exec("git checkout -b a_branch", dir)
-    addToGit("toto_2", dir)
+    dir.addFileToGit("toto_2")
     shell.exec("git checkout master", dir)
 
     git.downloadFile("toto_2", "file://" + dir, None) must throwA[FileNotFoundException]
@@ -169,8 +163,32 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
     val dir = Files.createTempDirectory("git")
 
     shell.exec("git init", dir)
-    addToGit("toto_1", dir)
+    dir.addFileToGit("toto_1")
 
     git.downloadFile("unexisting", "file://" + dir, None) must throwA[FileNotFoundException]
+  }
+
+  @Test
+  def currentRef(): Unit = {
+    val dir = Files.createTempDirectory("git")
+    dir.initGit()
+    dir.addFileToGit("toto_1")
+    dir.tag("v1.1")
+    dir.addFileToGit("toto_2")
+    git.currentRef(dir) must_== Git.Branch("master")
+
+    shell.exec("git checkout -b a_branch", dir)
+    dir.addFileToGit("toto_3")
+    git.currentRef(dir) must_== Git.Branch("a_branch")
+
+    dir.checkout("v1.1")
+    git.currentRef(dir) must_== Git.Tag("v1.1")
+
+    dir.checkout("master")
+    git.currentRef(dir) must_== Git.Branch("master")
+
+    dir.addFileToGit("toto_4")
+    dir.checkout("HEAD~1")
+    git.currentRef(dir) must beA[Git.Commit]
   }
 }

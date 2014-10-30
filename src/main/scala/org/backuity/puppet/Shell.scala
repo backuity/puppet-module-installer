@@ -6,10 +6,13 @@ import java.nio.file.Path
 import org.apache.commons.io.IOUtils
 
 trait Shell {
+  /** @throws CommandException if the command failed */
   def exec(cmd: String, path: Path) : String = {
     exec(cmd, path.toFile)
   }
-  def exec(cmd: String, dir: File = new File(".")) : String
+
+  /** @throws CommandException if the command failed */
+  def exec(cmd: String, dir: File) : String
 }
 
 case class CommandException(cmd: String, dir: File, returnCode: Int, stderr: String) extends

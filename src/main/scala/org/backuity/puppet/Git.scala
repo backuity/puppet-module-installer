@@ -1,9 +1,12 @@
 package org.backuity.puppet
 
-import java.io.FileNotFoundException
+import java.io.{File, FileNotFoundException}
 import java.nio.file.{StandardCopyOption, CopyOption, Files, Path}
 
 trait Git {
+  /** @return true if dir is a git repository */
+  def isGit(dir: Path) : Boolean
+
   def update(source: String, ref: Option[String], destination: Path): Unit
   def clone(source: String, ref: Option[String], destination: Path) : Unit
   def currentBranch(dir: Path): String
@@ -20,6 +23,8 @@ trait Git {
   def latestTag(uri: String, forMajor: Int)(implicit log: Logger) : Option[String] = {
     Git.latestVersion(lsRemoteTags(uri), forMajor)
   }
+
+  def currentRef(dir: Path) : Git.Ref
 }
 
 object Git {
@@ -59,11 +64,21 @@ object Git {
     }
   }
 
+  sealed abstract class Ref
+  case class Tag(name: String) extends Ref
+  case class Branch(name: String) extends Ref
+  case class Commit(hash: String) extends Ref
+
   class Impl(shell: Shell) extends Git {
+
     private val tmpDir = Files.createTempDirectory("pmi")
 
+    def isGit(dir: Path) : Boolean = {
+      Files.isDirectory(dir.resolve(".git"))
+    }
+
     def lsRemoteTags(uri: String) : String = {
-      shell.exec("git ls-remote --tags " + uri)
+      shell.exec("git ls-remote --tags " + uri, new File("."))
     }
 
     def downloadFile(fileName: String, uri: String, tag: Option[String]) : Path = {
@@ -102,6 +117,21 @@ object Git {
         case Some(r) =>
           shell.exec(s"git fetch", destination)
           shell.exec(s"git checkout $r", destination)
+      }
+    }
+
+    def currentRef(dir: Path): Ref = {
+      val branch = currentBranch(dir)
+      if( branch == "HEAD" ) {
+        try {
+          val tag = shell.exec("git describe --tags --exact-match", dir).trim
+          Tag(tag)
+        } catch {
+          case e : CommandException =>
+            Commit(shell.exec("git rev-parse HEAD", dir).trim)
+        }
+      } else {
+        Branch(branch)
       }
     }
   }

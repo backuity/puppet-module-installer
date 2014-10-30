@@ -15,8 +15,10 @@ object ModuleInstaller {
     var verbose = false
     var showGraph = false
     var check = false
+    var showCurrent = false
 
     val parser = new scopt.OptionParser[Unit]("puppet-module-installer") {
+
       opt[Unit]("latest").foreach { _ =>
         latest = true
       }
@@ -34,6 +36,9 @@ object ModuleInstaller {
 
       cmd("graph").text("Shows the graph of modules - do not install them").foreach { _ =>
         showGraph = true
+      }
+      cmd("show-current").text("Shows the current modules").foreach { _ =>
+        showCurrent = true
       }
     }
 
@@ -59,6 +64,9 @@ object ModuleInstaller {
     lazy val shell = new ShellImpl
     lazy val git = new Git.Impl(shell)
 
+    lazy val moduleAnalyzer = new ModuleAnalyzer(git)
+    val moduleDir = Paths.get("modules")
+
     def fetchModules : Module.Graph = {
       val puppetFileRepo = new PuppetFileRepositoryImpl(repoBaseDir)
       val moduleFetcher = new ModuleFetcher(git, puppetFileRepo)
@@ -71,7 +79,6 @@ object ModuleInstaller {
       val moduleGraph = fetchModules
       val modules = flattenModuleGraph(moduleGraph)
 
-      val moduleDir = Paths.get("modules")
       new ModuleInstaller(moduleDir, git, shell).install(modules)
     }
 
@@ -86,11 +93,26 @@ object ModuleInstaller {
       }
     }
 
+    def localModules() : Set[LocalModule] = {
+      moduleAnalyzer.analyze(moduleDir)
+    }
+
     if( showGraph ) {
       val modules = fetchModules
       println(Module.showGraph(modules, withUri = verbose))
       if( check ) {
         doCheck(modules, printFlatten = true)
+      }
+    } else if( showCurrent ) {
+      localModules().toList match {
+        case Nil => println("No modules found.")
+        case notEmpty => notEmpty.sortBy(_.name).foreach { m =>
+          val version = m.version match {
+            case None => ansi"\red{invalid}"
+            case Some(v) => v.toString
+          }
+          println(ansi"> ${m.name}(\bold{$version})")
+        }
       }
     } else {
       if( check ) {
