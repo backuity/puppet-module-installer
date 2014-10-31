@@ -15,10 +15,16 @@ trait Git {
 
   /** @see [[Version]] */
   def latestTag(uri: String)(implicit log: Logger) : Option[String] = Git.latestVersion(lsRemoteTags(uri))
+
+  /* @return the highest tag for a given major version */
+  def latestTag(uri: String, forMajor: Int)(implicit log: Logger) : Option[String] = {
+    Git.latestVersion(lsRemoteTags(uri), forMajor)
+  }
 }
 
 object Git {
-  def latestVersion(gitOutput: String)(implicit log: Logger) : Option[String] = {
+
+  def tagsToVersions(gitOutput: String)(implicit log: Logger) : List[(String,Version.MajorMinorBugFix)] = {
     gitOutput.split("\n").flatMap { line =>
       if (line.contains("refs/tags")) {
         val tag = line.split("refs/tags/")(1)
@@ -36,8 +42,19 @@ object Git {
       } else {
         None
       }
-    } match {
-      case Array() => None
+    }.toList
+  }
+
+  def latestVersion(gitOutput: String, forMajor: Int)(implicit log: Logger) : Option[String] = {
+    tagsToVersions(gitOutput).filter( _._2.major == forMajor) match {
+      case Nil => None
+      case lst => Some(lst.maxBy( _._2)._1)
+    }
+  }
+
+  def latestVersion(gitOutput: String)(implicit log: Logger) : Option[String] = {
+     tagsToVersions(gitOutput) match {
+      case Nil => None
       case lst => Some(lst.maxBy( _._2)._1)
     }
   }

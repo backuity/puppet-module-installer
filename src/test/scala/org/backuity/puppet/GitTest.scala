@@ -12,16 +12,16 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
   def latestVersion_vPrefix(): Unit = {
     val gitOutput = """3616c5b452d63bf45ee3485f6c4632175960a5e6	refs/tags/v1.0
                       |15d871d379230e7074fd21eae10af719ced6368d	refs/tags/v1.1
-                      |3ba8891c91a41258400e723d1d67a1c4e2c6d338	refs/tags/v1.1^{}
-                      |ab716f4e206bd410074cb49a8308246206a64ab0	refs/tags/v1.10
-                      |d2abc5baa22caaee08a3d7ee8fcd089566247532	refs/tags/v1.10^{}
-                      |e725cfb257ec50e268532bd3ab2e3d9623b1c2eb	refs/tags/v1.2
+                      |3ba8891c91a41258400e723d1d67a1c4e2c6d338	refs/tags/v2.1^{}
+                      |ab716f4e206bd410074cb49a8308246206a64ab0	refs/tags/v10.10
+                      |d2abc5baa22caaee08a3d7ee8fcd089566247532	refs/tags/v10.10^{}
+                      |e725cfb257ec50e268532bd3ab2e3d9623b1c2eb	refs/tags/v10.2
                       |1482ee0dc1e5886a77c6dd80da56464a6507135e	refs/tags/v1.2^{}
                       |9a4cf4e2103400c1f7ad82d182586343b7231c1f	refs/tags/v1.9
                       |b2448b54b1d398febddaf71919234785f1afaf43	refs/tags/v1.9^{}
                       |"""
 
-    Git.latestVersion(gitOutput) must_== Some("v1.10")
+    Git.latestVersion(gitOutput) must_== Some("v10.10")
   }
 
   @Test
@@ -48,6 +48,26 @@ class GitTest extends JunitMatchers with LoggerTestSupport with FilesTestUtil {
   @Test
   def latestVersion_noVersion(): Unit = {
     Git.latestVersion("") must_== None
+  }
+
+
+  @Test
+  def latestVersionForMajor() {
+    val gitOutput = """3616c5b452d63bf45ee3485f6c4632175960a5e6	refs/tags/v2.2
+                      |15d871d379230e7074fd21eae10af719ced6368d	refs/tags/v1.1
+                      |3ba8891c91a41258400e723d1d67a1c4e2c6d338	refs/tags/v2.1^{}
+                      |ab716f4e206bd410074cb49a8308246206a64ab0	refs/tags/v10.10
+                      |d2abc5baa22caaee08a3d7ee8fcd089566247532	refs/tags/v10.10^{}
+                      |e725cfb257ec50e268532bd3ab2e3d9623b1c2eb	refs/tags/v10.2
+                      |1482ee0dc1e5886a77c6dd80da56464a6507135e	refs/tags/v1.2^{}
+                      |9a4cf4e2103400c1f7ad82d182586343b7231c1f	refs/tags/v2.10
+                      |b2448b54b1d398febddaf71919234785f1afaf43	refs/tags/v1.9^{}
+                      |b2448b54b1d398febddaf71919234785f1afaf43	refs/tags/v1.8
+                      |"""
+
+    Git.latestVersion(gitOutput, forMajor = 1) must_== Some("v1.8")
+    Git.latestVersion(gitOutput, forMajor = 2) must_== Some("v2.10")
+    Git.latestVersion(gitOutput, forMajor = 10) must_== Some("v10.10")
   }
 
   val shell = new ShellImpl()
