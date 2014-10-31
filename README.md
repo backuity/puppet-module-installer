@@ -17,7 +17,7 @@ Until proper packages (Deb, Rpm) exist you can install the puppet-module-install
 
     # go to your home bin folder (if you have one)
     cd ~/bin
-    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.0.0/puppet-module-installer_2.11-2.0.0-one-jar.jar -O puppet-module-installer.jar
+    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O puppet-module-installer.jar
       
 Create a bash script with the following
 
