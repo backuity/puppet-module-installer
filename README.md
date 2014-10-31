@@ -14,13 +14,21 @@ The tool provides the following options:
 # Installation
 
 Until proper packages (Deb, Rpm) exist you can install the puppet-module-installer by downloading it from Maven Central:
+<http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar>
 
-    # go to your home bin folder (if you have one)
-    cd ~/bin
-    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O puppet-module-installer.jar
-      
-Create a bash script with the following
+If you have `binfmt-support` installed you can simply give the executable permission to your jar:
+
+    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O ~/bin/puppet-module-installer
+    chmod u+x ~/bin/puppet-module-installer
+    
+If you don't have `binfmt-support`, you can create a bash script:    
 
     #!/bin/bash
+    
+    java -jar ~/bin/puppet-module-installer.jar "$@"
+     
+And download the jar next to it:
 
-    java -jar ~/bin/puppet-module-installer.jar "$@" 
+    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O ~/bin/puppet-module-installer.jar         
+      
+    
