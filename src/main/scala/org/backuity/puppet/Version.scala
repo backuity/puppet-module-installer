@@ -1,7 +1,5 @@
 package org.backuity.puppet
 
-import org.backuity.puppet.Version.{MajorMinorBugFix, Latest}
-
 sealed trait Version extends Ordered[Version] {
   def isCompatibleWith(other: Version) : Boolean = {
     Version.isCompatibleWith(this, other)
@@ -58,8 +56,15 @@ object Version {
     case Some(r) => Version(r)
   }
 
-  // take everything after the first digit
-  val VersionRegex = """[^0-9]*([0-9].*)""".r
+  val MajorVersionRegex            = """([^\.]*[0-9]+)""".r // a major must contain a number
+  val MajorMinorVersionRegex       = """([^\.]+)\.([^\.]+)""".r
+  val MajorMinorBugFixVersionRegex = """([^\.]+)\.([^\.]+)\.([^\.]+)""".r
+
+  // used for the 'too many elements' error message
+  val NumberLeadingRegex           = """[^0-9]*([0-9].*)""".r
+
+  val NextNumberLeadingRegex       = """.[^0-9]*([0-9].*)""".r
+
 
   /**
    * Accept 1, 2 or 3 '.' separated digits versions, which can be prefixed by any number of chars.
@@ -67,6 +72,7 @@ object Version {
    * Example :
    *
    *   - `puppet-module-installer_1.2.0`
+   *   - `apache2_123.45.6`
    *   - `v1.2`
    *   - `6`
    * @throws IllegalArgumentException if versionString cannot be parsed into a Version
@@ -76,34 +82,36 @@ object Version {
       throw new IllegalArgumentException(s"Cannot parse $versionString : $msg")
     }
 
-    def toInt(value: String, name: String): Int = {
+    def toInt(value: String, name: String, retry: Boolean = false): Int = {
+
+      def notANumber() = fail(s"$name '$value' is not a number")
+
       try {
         value.toInt
       } catch {
         case _ : NumberFormatException =>
-          fail(s"$name '$value' is not a number")
+          if( retry ) {
+            try {
+              val NextNumberLeadingRegex(number) = value
+              toInt(number, name, retry)
+            } catch {
+              case _: MatchError => notANumber()
+            }
+          } else {
+            notANumber()
+          }
       }
     }
 
-    def toMajor(value: String) = toInt(value, "major")
+    def toMajor(value: String) = toInt(value, "major", retry = true)
     def toMinor(value: String) = toInt(value, "minor")
 
-    VersionRegex.findFirstMatchIn(versionString).map( _.group(1)) match {
-      case None => fail("cannot find a digit")
-      case Some(digits) =>
-        val nbDot = digits.count( _ == '.')
-        nbDot match {
-          case 0 => MajorMinorBugFix(toMajor(digits), 0, 0)
-          case 1 =>
-            val Array(major,minor) = digits.split("\\.")
-            MajorMinorBugFix(toMajor(major), toMinor(minor), 0)
-
-          case 2 =>
-            val Array(major,minor,bugfix) = digits.split("\\.")
-            MajorMinorBugFix(toMajor(major), toMinor(minor), toInt(bugfix, "bugfix"))
-
-          case _ => fail("too many elements, expected 1, 2 or 3 '.' separated digits")
-        }
+    versionString match {
+      case MajorMinorBugFixVersionRegex(major,minor,bugfix) => MajorMinorBugFix(toMajor(major), toMinor(minor), toInt(bugfix, "bugfix"))
+      case MajorMinorVersionRegex(major, minor)             => MajorMinorBugFix(toMajor(major), toMinor(minor), 0)
+      case MajorVersionRegex(major)                         => MajorMinorBugFix(toMajor(major), 0, 0)
+      case NumberLeadingRegex(content) if content.count( _ == '.') > 2 => fail("too many elements, expected 1, 2 or 3 '.' separated digits")
+      case other => fail("no version information found")
     }
   }
 }
