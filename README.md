@@ -79,11 +79,11 @@ The syntax comes from [Librarian Puppet](https://github.com/rodjek/librarian-pup
 # Installation
 
 Until proper packages (Deb, Rpm) exist you can install the puppet-module-installer by downloading it from Maven Central:
-<http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar>
+<http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.1/puppet-module-installer_2.11-2.1.1-one-jar.jar>
 
 If you have `binfmt-support` installed you can simply give the executable permission to your jar:
 
-    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O ~/bin/puppet-module-installer
+    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.1/puppet-module-installer_2.11-2.1.1-one-jar.jar -O ~/bin/puppet-module-installer
     chmod u+x ~/bin/puppet-module-installer
     
 If you don't have `binfmt-support`, you can create a bash script:    
@@ -94,6 +94,6 @@ If you don't have `binfmt-support`, you can create a bash script:
      
 And download the jar next to it:
 
-    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.0/puppet-module-installer_2.11-2.1.0-one-jar.jar -O ~/bin/puppet-module-installer.jar         
+    wget http://repo1.maven.org/maven2/org/backuity/puppet-module-installer_2.11/2.1.1/puppet-module-installer_2.11-2.1.1-one-jar.jar -O ~/bin/puppet-module-installer.jar         
       
     
