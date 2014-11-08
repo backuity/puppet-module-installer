@@ -11,7 +11,7 @@ class ModuleAnalyzer(git : Git)(implicit log: Logger) {
       case array => array.toSet
     }
     for (module <- modules if module.isDirectory && git.isGit(module.toPath)) yield {
-      LocalModule(module.getName, git.currentRef(module.toPath), None)
+      LocalModule(module.getName, git.currentRef(module.toPath), git.isDirty(module.toPath), None)
     }
   }
 }

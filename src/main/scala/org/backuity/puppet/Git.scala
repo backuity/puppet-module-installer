@@ -25,6 +25,11 @@ trait Git {
   }
 
   def currentRef(dir: Path) : Git.Ref
+
+  /** @return true if the git repo at `dir` is dirty, that is,
+    *         if it contains un committed changes
+    */
+  def isDirty(dir: Path) : Boolean
 }
 
 object Git {
@@ -75,6 +80,10 @@ object Git {
 
     def isGit(dir: Path) : Boolean = {
       Files.isDirectory(dir.resolve(".git"))
+    }
+
+    def isDirty(dir: Path) : Boolean = {
+      ! shell.exec("git status --porcelain", dir).trim.isEmpty
     }
 
     def lsRemoteTags(uri: String) : String = {

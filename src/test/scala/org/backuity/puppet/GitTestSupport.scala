@@ -29,6 +29,7 @@ class GitRepo(val path: Path, git: Git, shell: Shell) {
     this
   }
 
+  /** create and commit `fileName` to the repo denoted by this path */
   def addFileToGit(fileName: String): GitRepo = {
     new PimpPath(path).addFiles(fileName -> (fileName + " content"))
     shell.exec("git add -A", path)

@@ -45,7 +45,7 @@ object ModuleInstaller {
 
       cmd("graph").text("Shows the graph of modules - do not install them").action { (a,c) => c.command("graph") }
 
-      cmd("show").text("Shows the current modules").action { (a,c) => c.command("show-current") }
+      cmd("show").text("Shows the current modules. Dirty modules are shown in yellow.").action { (a,c) => c.command("show") }
 
       cmd("only").text("Update only subset of the modules").children(
         arg[String]("<module>...").unbounded().required().text("List of modules to update").action { (m, c) =>
@@ -121,7 +121,7 @@ object ModuleInstaller {
           doCheck(modules, printFlatten = true)
         }
 
-      case "show-current" =>
+      case "show" =>
         localModules().toList match {
           case Nil => println("No modules found.")
           case notEmpty => notEmpty.sortBy(_.name).foreach { m =>
@@ -129,7 +129,12 @@ object ModuleInstaller {
               case None => ansi"\red{invalid}"
               case Some(v) => v.toString
             }
-            println(ansi"> ${m.name}(\bold{$version})")
+            val name = ansi"> ${m.name}(\bold{$version})"
+            if( m.isDirty ) {
+              println(ansi"\yellow{$name}")
+            } else {
+              println(name)
+            }
           }
         }
 

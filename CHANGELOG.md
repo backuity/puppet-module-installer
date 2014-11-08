@@ -1,4 +1,8 @@
 
+# 2.1.2
+
+* Show git status of modules listed by the `show` command (dirty modules are printed in yellow) 
+
 # 2.1.1
 
 * Improve version parsing, now supports versions such as `puppet-apache2-2.3.10`

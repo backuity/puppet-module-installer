@@ -191,4 +191,32 @@ class GitTest extends GitTestSupport {
     dir.checkout("HEAD~1")
     git.currentRef(dir) must beA[Git.Commit]
   }
+
+  @Test
+  def dirty(): Unit = {
+    val dir = Files.createTempDirectory("git")
+    dir.initGit()
+    git.isDirty(dir) must beFalse
+
+    dir.addFiles( "x" -> "x content" )
+    git.isDirty(dir) must beTrue
+
+    shell.exec("git add -A", dir)
+    shell.exec(s"git commit -m 'added x'", dir)
+    git.isDirty(dir) must beFalse
+
+    dir.resolve("x").write("new stuff")
+    git.isDirty(dir) must beTrue
+
+    dir.addFiles( "y" -> "y content" )
+    git.isDirty(dir) must beTrue
+
+    shell.exec("git add y", dir)
+    shell.exec(s"git commit -m 'added y'", dir)
+    git.isDirty(dir) must beTrue
+
+    shell.exec("git add x", dir)
+    shell.exec(s"git commit -m 'updated x'", dir)
+    git.isDirty(dir) must beFalse
+  }
 }
