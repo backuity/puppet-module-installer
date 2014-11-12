@@ -3,7 +3,7 @@ name := "puppet-module-installer"
 
 organization := "org.backuity"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.4"
 
 homepage := Some(url("https://github.com/backuity/puppet-module-installer"))
 

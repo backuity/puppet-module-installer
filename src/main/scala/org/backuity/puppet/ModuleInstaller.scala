@@ -7,6 +7,8 @@ import org.backuity.puppet.AnsiFormatter.FormattedHelper
 import org.backuity.puppet.ConcurrentUtil.PimpExecutorService
 import org.backuity.puppet.ModuleFetcher.FetchMode
 
+import scala.util.control.NonFatal
+
 object ModuleInstaller {
 
   case class CliArgs(
@@ -113,46 +115,52 @@ object ModuleInstaller {
       moduleAnalyzer.analyze(moduleDir)
     }
 
-    cla.command match {
-      case "graph" =>
-        val modules = fetchModules
-        println(Module.showGraph(modules, withUri = cla.verbose))
-        if( cla.check ) {
-          doCheck(modules, printFlatten = true)
-        }
+    try {
+      cla.command match {
+        case "graph" =>
+          val modules = fetchModules
+          println(Module.showGraph(modules, withUri = cla.verbose))
+          if( cla.check ) {
+            doCheck(modules, printFlatten = true)
+          }
 
-      case "show" =>
-        localModules().toList match {
-          case Nil => println("No modules found.")
-          case notEmpty => notEmpty.sortBy(_.name).foreach { m =>
-            val version = m.version match {
-              case None => ansi"\red{invalid}"
-              case Some(v) => v.toString
-            }
-            val name = ansi"> ${m.name}(\bold{$version})"
-            if( m.isDirty ) {
-              println(ansi"\yellow{$name}")
-            } else {
-              println(name)
+        case "show" =>
+          localModules().toList match {
+            case Nil => println("No modules found.")
+            case notEmpty => notEmpty.sortBy(_.name).foreach { m =>
+              val version = m.version match {
+                case None => ansi"\red{invalid}"
+                case Some(v) => v.toString
+              }
+              val name = ansi"> ${m.name}(\bold{$version})"
+              if( m.isDirty ) {
+                println(ansi"\yellow{$name}")
+              } else {
+                println(name)
+              }
             }
           }
-        }
 
-      case "only" =>
-        val flattenModules = flattenModuleGraph(fetchModules)
-        for( onlyModule <- cla.onlyModules ) {
-          flattenModules.get(onlyModule) match {
-            case None => println(ansi"\red{\bold{$onlyModule} is not a known module.}")
-            case Some(module) => moduleInstaller.install(module)
+        case "only" =>
+          val flattenModules = flattenModuleGraph(fetchModules)
+          for( onlyModule <- cla.onlyModules ) {
+            flattenModules.get(onlyModule) match {
+              case None => println(ansi"\red{\bold{$onlyModule} is not a known module.}")
+              case Some(module) => moduleInstaller.install(module)
+            }
           }
-        }
 
-      case _ =>
-        if( cla.check ) {
-          doCheck(fetchModules)
-        } else {
-          run()
-        }
+        case _ =>
+          if( cla.check ) {
+            doCheck(fetchModules)
+          } else {
+            run()
+          }
+      }
+    } catch {
+      case NonFatal(err) =>
+        logger.error(err.getMessage)
+        logger.debug(err)
     }
   }
 
@@ -215,7 +223,7 @@ private class ModuleInstaller(modulesDir: Path, git: Git, shell: Shell)(implicit
     } catch {
       case t: Throwable =>
         Console.err.println(s"Cannot install ${module.name} from ${module.uri} ref:${module.tag.getOrElse("Latest")}")
-        t.printStackTrace()
+        log.debug(t)
         // fatal failure... just terminate everything - we might want to add a mode that deletes
         // failing modules?
         if( exitUponFailure ) {

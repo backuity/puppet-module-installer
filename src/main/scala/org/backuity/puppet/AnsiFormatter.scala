@@ -10,16 +10,22 @@ object AnsiFormatter {
   implicit class FormattedHelper(val sc: StringContext) extends AnyVal {
     private def parseAndFormat(fmt: Formatter)(args: Seq[Any]): String = {
       val ipl = sc.standardInterpolator(identity, args)
-      val p = FLParser.parseAll(FLParser.content, ipl)
-      val sb = new StringBuilder
-      fmt.format(p.get, Codes(), sb)
-      sb.toString()
+      FLParser.parseAll(FLParser.content, ipl) match {
+        case FLParser.Success(result, _) =>
+          val sb = new StringBuilder
+          fmt.format(result, Codes(), sb)
+          sb.toString()
+
+        case _ => ipl
+      }
     }
 
     def ansi(args: Any*): String = parseAndFormat(AnsiFormatter)(args)
-
-    def html(args: Any*): String = parseAndFormat(HtmlFormatter)(args)
   }
+
+  def red(msg: String) : String = s"\u001b[31m${msg}\u001b[31m"
+  def yellow(msg: String) : String = s"\u001b[33m${msg}\u001b[33m"
+  def blue(msg: String) : String = s"\u001b[34m${msg}\u001b[34m"
 
   trait Formatter {
     def format(ce: CommandExp, c: Codes, sb: StringBuilder): Unit
@@ -104,33 +110,6 @@ object AnsiFormatter {
         sb append s"\u001b[3${cCode}m"
         format(ce.content, c.copy(color = cCode), sb)
         sb append s"\u001b[3${c.color}m"
-    }
-  }
-
-  object HtmlFormatter extends Formatter {
-    override def format(ce: CommandExp, c: Codes, sb: StringBuilder) = ce.command match {
-      case "bold" =>
-        sb append "<b>"
-        format(ce.content, c.copy(bold = true), sb)
-        sb append "</b>"
-      case "italic" =>
-        sb append "<i>"
-        format(ce.content, c.copy(bold = true), sb)
-        sb append "</i>"
-      case "Underline" =>
-        sb append "<u>"
-        format(ce.content, c.copy(bold = true), sb)
-        sb append "</u>"
-      case "blink" =>
-        sb append "<blink>"
-        format(ce.content, c.copy(bold = true), sb)
-        sb append "</blink>"
-      case "reverse" => // noop in html
-        format(ce.content, c.copy(bold = true), sb)
-      case color =>
-        sb append s"<span style='color:$color'>"
-        format(ce.content, c.copy(bold = true), sb)
-        sb append "</span>"
     }
   }
 

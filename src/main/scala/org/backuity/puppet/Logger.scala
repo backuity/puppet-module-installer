@@ -1,9 +1,12 @@
 package org.backuity.puppet
 
+import java.io.{StringWriter, PrintWriter}
+
 import org.backuity.puppet.LogLevel.LogLevel
 
 trait Logger {
   def debug(s: String)
+  def debug(t: Throwable)
   def info(msg: String)
   def warn(msg: String)
   def error(msg: String)
@@ -22,15 +25,22 @@ object Logger {
     import AnsiFormatter._
 
     override def error(msg: String): Unit = {
-      super.error(ansi"\red{$msg}")
+      super.error(red(msg))
     }
 
     override def warn(msg: String): Unit = {
-      super.warn(ansi"\yellow{$msg}")
+      super.warn(yellow(msg))
     }
 
     override def debug(msg: String): Unit = {
-      super.debug(ansi"\blue{$msg}")
+      super.debug(blue(msg))
+    }
+
+    override def debug(t: Throwable): Unit = {
+      val sw = new StringWriter()
+      val pw = new PrintWriter(sw)
+      t.printStackTrace(pw)
+      super.debug(blue(sw.toString))
     }
   }
 
@@ -39,6 +49,12 @@ object Logger {
     override def debug(msg: String): Unit ={
       if( logLevel >= LogLevel.Debug ) {
         println(msg)
+      }
+    }
+
+    override def debug(t: Throwable): Unit = {
+      if( logLevel >= LogLevel.Debug ) {
+        t.printStackTrace()
       }
     }
 
