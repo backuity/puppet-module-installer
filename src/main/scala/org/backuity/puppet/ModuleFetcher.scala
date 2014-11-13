@@ -4,15 +4,17 @@ import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
 import java.util
 
-import org.backuity.puppet.ModuleFetcher.FetchMode
+import org.backuity.puppet.ModuleFetcher.{CyclicDependencyException, FetchMode}
 import org.backuity.puppet.PuppetFileRepository.{NotFound, Found, Missing}
 import org.backuity.puppet.Puppetfile.{ForgeModule, GitModule}
 import org.backuity.puppet.Version.{MajorMinorBugFix, Latest}
 
 import scala.collection.concurrent.TrieMap
+import scala.util.control.NonFatal
 
 class ModuleFetcher(git : Git, puppetFileRepo : PuppetFileRepository)(implicit log: Logger) {
 
+  /** @throws [[ModuleFetcher.CyclicDependencyException]] */
   def buildModuleGraph(puppetFile: Path, mode : FetchMode.FetchMode) : Set[Module] = {
 
     val moduleCache = new util.HashMap[(String, Version), Module]
@@ -24,7 +26,11 @@ class ModuleFetcher(git : Git, puppetFileRepo : PuppetFileRepository)(implicit l
         if( forMajor > -1 ) git.latestTag(uri, forMajor) else git.latestTag(uri))
     }
 
+    /** @throws [[CyclicDependencyException]] */
     def buildModuleGraph(puppetFile: Path, mode : FetchMode.FetchMode, parents: Seq[String]) : Set[Module] = {
+
+      // TODO we might want to make this setting available on the CLI
+      val abortOnError = false
 
       log.debug(s"Parsing $puppetFile ...")
       val puppetFileContent = new String(Files.readAllBytes(puppetFile), "UTF-8")
@@ -64,37 +70,44 @@ class ModuleFetcher(git : Git, puppetFileRepo : PuppetFileRepository)(implicit l
 
             moduleCache.get((uri, version)) match {
               case null =>
-                val dependencies = version match {
-                  case Latest =>
-                    // no caching when version is Latest
-                    try {
-                      buildModuleGraph(downloadPuppetfile, mode, parents :+ name)
-                    } catch {
-                      case _ : FileNotFoundException =>
-                        log.debug(s"Cannot find Puppetfile in $uri $tag")
-                        Set.empty[Module]
-                    }
+                val dependencies = try {
+                  version match {
+                    case Latest =>
+                      // no caching when version is Latest
+                      try {
+                        buildModuleGraph(downloadPuppetfile, mode, parents :+ name)
+                      } catch {
+                        case _: FileNotFoundException =>
+                          log.debug(s"Cannot find Puppetfile in $uri $tag")
+                          Set.empty[Module]
+                      }
 
-                  case mmbVersion : MajorMinorBugFix =>
-                    puppetFileRepo.find(name, mmbVersion) match {
-                      case Missing =>
-                        log.debug(s"Puppetfile in $uri $tag is missing (cached info)")
-                        Set.empty[Module]
+                    case mmbVersion: MajorMinorBugFix =>
+                      puppetFileRepo.find(name, mmbVersion) match {
+                        case Missing =>
+                          log.debug(s"Puppetfile in $uri $tag is missing (cached info)")
+                          Set.empty[Module]
 
-                      case NotFound =>
-                        try {
-                          val modulePuppetFile = puppetFileRepo.add(name, mmbVersion, downloadPuppetfile)
+                        case NotFound =>
+                          try {
+                            val modulePuppetFile = puppetFileRepo.add(name, mmbVersion, downloadPuppetfile)
+                            buildModuleGraph(modulePuppetFile, mode, parents :+ name)
+                          } catch {
+                            case _: FileNotFoundException =>
+                              log.debug(s"Cannot find Puppetfile in $uri $tag")
+                              puppetFileRepo.addMissing(name, mmbVersion)
+                              Set.empty[Module]
+                          }
+
+                        case Found(modulePuppetFile) =>
                           buildModuleGraph(modulePuppetFile, mode, parents :+ name)
-                        } catch {
-                          case _ : FileNotFoundException =>
-                            log.debug(s"Cannot find Puppetfile in $uri $tag")
-                            puppetFileRepo.addMissing(name, mmbVersion)
-                            Set.empty[Module]
-                        }
-
-                      case Found(modulePuppetFile) =>
-                        buildModuleGraph(modulePuppetFile, mode, parents :+ name)
-                    }
+                      }
+                  }
+                } catch {
+                  // let cyclic dependencies errors bubble up
+                  case NonFatal(err) if !abortOnError && !err.isInstanceOf[CyclicDependencyException] =>
+                    log.warn(s"Cannot figure out dependencies of module '$name' at $uri $tag : ${err.getMessage}")
+                    Set.empty[Module]
                 }
 
                 val module = Module(name, tag, uri, dependencies)
