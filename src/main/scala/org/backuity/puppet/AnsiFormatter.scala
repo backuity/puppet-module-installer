@@ -23,9 +23,9 @@ object AnsiFormatter {
     def ansi(args: Any*): String = parseAndFormat(AnsiFormatter)(args)
   }
 
-  def red(msg: String) : String = s"\u001b[31m${msg}\u001b[31m"
-  def yellow(msg: String) : String = s"\u001b[33m${msg}\u001b[33m"
-  def blue(msg: String) : String = s"\u001b[34m${msg}\u001b[34m"
+  def red(msg: String) : String = s"\u001b[31m${msg}\u001b[39m"
+  def yellow(msg: String) : String = s"\u001b[33m${msg}\u001b[39m"
+  def blue(msg: String) : String = s"\u001b[34m${msg}\u001b[39m"
 
   trait Formatter {
     def format(ce: CommandExp, c: Codes, sb: StringBuilder): Unit
