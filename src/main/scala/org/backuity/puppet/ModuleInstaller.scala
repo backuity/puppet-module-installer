@@ -16,7 +16,8 @@ object ModuleInstaller {
     verbose : Boolean = false,
     check : Boolean = false,
     command: String = "",
-    onlyModules : List[String] = Nil
+    onlyModules : List[String] = Nil,
+    recurse : Boolean = true
   ) {
     def command(cmd: String) : CliArgs = copy(command = cmd)
   }
@@ -35,11 +36,13 @@ object ModuleInstaller {
       opt[Unit]("head").text("Use HEAD version for all modules.")
           .action { (a,c) => c.copy( mode = FetchMode.HEAD ) }
 
+      opt[Unit]("dont-recurse").text("Do not fetch the module transitively")
+          .action { (a,c) => c.copy( recurse = false ) }
+
       opt[Unit]("verbose").abbr("v").action { (a,c) => c.copy( verbose = true ) }
       opt[Unit]("check").text("Only check that the module versions are consistent, that is,\n" +
-          "\twe cannot find 2 incompatible version (different major) of the same module").action { (a,c) =>
-        c.copy( check = true )
-      }
+          "\twe cannot find 2 incompatible version (different major) of the same module")
+          .action { (a,c) => c.copy( check = true ) }
 
       help("help")
       version("version")
@@ -49,11 +52,15 @@ object ModuleInstaller {
 
       cmd("show").text("Shows the current modules. Dirty modules are shown in yellow.").action { (a,c) => c.command("show") }
 
-      cmd("only").text("Update only subset of the modules").children(
-        arg[String]("<module>...").unbounded().required().text("List of modules to update").action { (m, c) =>
-          c.copy( onlyModules = c.onlyModules :+ m )
-        }
-      ).action { (a,c) => c.command("only") }
+      cmd("only").text("Update only subset of the modules")
+          .children(
+            arg[String]("<module>...").unbounded().required().text("List of modules to update")
+              .action { (m, c) => c.copy( onlyModules = c.onlyModules :+ m ) })
+          .action { (a,c) => c.command("only") }
+
+      checkConfig { cla =>
+        if (!cla.recurse && cla.check) failure("Checking without recursing is useless.") else success
+      }
     }
 
     parser.parse(args, new CliArgs) match {
@@ -91,7 +98,7 @@ object ModuleInstaller {
       val puppetFileRepo = new PuppetFileRepositoryImpl(repoBaseDir)
       val moduleFetcher = new ModuleFetcher(git, puppetFileRepo)
 
-      moduleFetcher.buildModuleGraph(puppetFile, cla.mode)
+      moduleFetcher.buildModuleGraph(puppetFile, cla.mode, cla.recurse)
     }
 
     def run(): Unit = {
