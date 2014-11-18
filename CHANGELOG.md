@@ -1,4 +1,8 @@
 
+# 2.2.0 _(2014-11-18)_
+
+* Add the `--dont-recurse` option
+
 # 2.1.4 _(2014-11-15)_
 
 * Do not stop when module dependencies cannot be fetched (failing `git archive` for instance)
