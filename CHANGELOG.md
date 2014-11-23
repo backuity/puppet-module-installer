@@ -1,4 +1,8 @@
 
+# 2.2.1 _(2014-11-23)_
+
+* Use [backuity/ansi-interpolator](https://github.com/backuity/ansi-interpolator), cutting down one dependency (shrinking the one-jar by 400KB)
+
 # 2.2.0 _(2014-11-18)_
 
 * Add the `--dont-recurse` option
