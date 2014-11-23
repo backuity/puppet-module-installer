@@ -13,7 +13,7 @@ scalacOptions ++= Seq("-deprecation", "-unchecked")
 
 libraryDependencies ++= Seq(
   "org.parboiled" %% "parboiled" % "2.0.1",
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
+  "org.backuity" %% "ansi-interpolator" % "1.0" % "provided",
   "commons-io"    % "commons-io" % "2.4",
   "com.github.scopt" %% "scopt" % "3.2.0",
   //

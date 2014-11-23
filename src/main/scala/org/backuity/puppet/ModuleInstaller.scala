@@ -3,7 +3,7 @@ package org.backuity.puppet
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent._
 
-import org.backuity.puppet.AnsiFormatter.FormattedHelper
+import org.backuity.ansi.AnsiFormatter.FormattedHelper
 import org.backuity.puppet.ConcurrentUtil.PimpExecutorService
 import org.backuity.puppet.ModuleFetcher.FetchMode
 
@@ -113,7 +113,7 @@ object ModuleInstaller {
       if( printFlatten ) {
         println("\nFlatten:")
         for( (name, desc) <- flattenModules.toList.sortBy( _._1 ) ) {
-          println(ansi"  $name(\bold{${desc.version}})" + (if(cla.verbose) ansi" @ \blue{${desc.uri}}" else ""))
+          println(ansi"  $name(%bold{${desc.version}})" + (if(cla.verbose) ansi" @ %blue{${desc.uri}}" else ""))
         }
       }
     }
@@ -136,12 +136,12 @@ object ModuleInstaller {
             case Nil => println("No modules found.")
             case notEmpty => notEmpty.sortBy(_.name).foreach { m =>
               val version = m.version match {
-                case None => ansi"\red{invalid}"
+                case None => ansi"%red{invalid}"
                 case Some(v) => v.toString
               }
-              val name = ansi"> ${m.name}(\bold{$version})"
+              val name = ansi"> ${m.name}(%bold{$version})"
               if( m.isDirty ) {
-                println(ansi"\yellow{$name}")
+                println(ansi"%yellow{$name}")
               } else {
                 println(name)
               }
@@ -152,7 +152,7 @@ object ModuleInstaller {
           val flattenModules = flattenModuleGraph(fetchModules)
           for( onlyModule <- cla.onlyModules ) {
             flattenModules.get(onlyModule) match {
-              case None => println(ansi"\red{\bold{$onlyModule} is not a known module.}")
+              case None => println(ansi"%red{%bold{$onlyModule} is not a known module.}")
               case Some(module) => moduleInstaller.install(module)
             }
           }
@@ -216,7 +216,7 @@ private class ModuleInstaller(modulesDir: Path, git: Git, shell: Shell)(implicit
   private val pool = Executors.newFixedThreadPool(6)
 
   private def installFromGit(name: String, version: Version, gitUri: String, ref: Option[String]) {
-    log.info(ansi"> \bold{$name}($version) in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
+    log.info(ansi"> %bold{$name}($version) in $modulesDir from ${gitUri}${ref.map(r => " ref: " + r).getOrElse("")}")
     val moduleDir = modulesDir.resolve(name)
     if( !Files.isDirectory(moduleDir) ) {
       Files.createDirectories(moduleDir)

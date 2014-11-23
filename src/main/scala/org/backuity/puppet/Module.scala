@@ -1,6 +1,6 @@
 package org.backuity.puppet
 
-import AnsiFormatter._
+import org.backuity.ansi.AnsiFormatter.FormattedHelper
 
 case class Module(description: Module.Description, dependencies: Module.Graph) {
   def name = description.name
@@ -26,8 +26,8 @@ object Module {
       if( m.name == "Puppetfile" ) {
         "Puppetfile"
       } else {
-        val uri = if( withUri ) ansi"\blue{ @ ${m.uri}}" else ""
-        ansi"${m.name}(\bold{${m.version}})$uri"
+        val uri = if( withUri ) ansi"%blue{ @ ${m.uri}}" else ""
+        ansi"${m.name}(%bold{${m.version}})$uri"
       }
     }
     Graph.toAscii[Module](root, _.dependencies.toList.sortBy(_.name), showModule)
