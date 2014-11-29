@@ -52,7 +52,6 @@ You can inspect the graph of modules with the `puppet-module-installer graph` co
       │   └ stdlib(1.2.0)
       │
       ├ motd(HEAD)
-      ├ nestools(HEAD)
       └ sudo(HEAD)
 
 
